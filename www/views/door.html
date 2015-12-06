@@ -1,0 +1,397 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <link rel="stylesheet" type="text/css" href="../css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="../css/tests.css">
+    <link rel="stylesheet" type="text/css" href="../css/tests-responsive.css">
+    <link rel="stylesheet" type="text/css" href="../css/bootstrap-toggle-bootstrap-toggle.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+    <style>
+
+
+    </style>
+</head>
+
+<script type="text/javascript">
+
+
+    window.onload=Pinstatus;
+	
+	//Function to call and initiate the updateStatus() function which starts the continous loop for updating the status of all digital pins
+    function Pinstatus(){
+        updateStatus();
+    }
+	
+	//This function creates an Http requests to the Server and key in the word "status" so the arduino can process the as a status update request
+	//It also tests the request to make sure it has been received with the code on line 35.
+    function updateStatus(){
+        setTimeout(updateStatus, 1000);
+        document.getElementById("description").innerHTML = "Processing Status"; //ccommunicating with arduino
+        server = "/arduino/status/99"; //ui working on the arduino server
+        request = new XMLHttpRequest();
+        request.onreadystatechange = updateasyncstatus;
+        request.open("GET", server, true);
+        request.send(null);
+    }
+	
+	//Varies the response from the server is processed and valid.
+	//Retrieves the response string from Arduino and splits them at line 48.
+    function updateasyncstatus()
+    {
+        if ((request.readyState == 4) && (request.status == 200))
+        {
+            result = request.responseText;
+            document.getElementById("description").innerHTML = result;
+            fullset = result.split("#");
+            document.getElementById("description").innerHTML = fullset;
+			
+			//Parse the string response from Arduino and detects the status of each pins.
+            for(i = 1; i < fullset.length; i++)
+            {
+                PinPair = fullset[i];
+                singleset = PinPair.split("=");
+                PN = singleset[0];
+                Pinstatus = singleset[1];
+
+                if (PN > 11)
+                {
+                    ActNum = "action" + PN;
+                    ImgNum = "image" + PN;
+                    if (Pinstatus == 0)
+                    {
+                        PinAct = "1";
+                        image = "off.jpg";
+                    }
+                    else
+                    {
+                        PinAct = "0";
+                        image = "on.jpg";
+                    }
+                    document.getElementById(ActNum).value = PinAct;
+                    document.getElementById(ImgNum).src = image;
+                }
+
+				// Checks the status of Front window assigned to pin 2 on Arduino
+				// and updates the image to either Open or Closed and also updates the Time Stamp
+                if (PN == 2)
+                {
+                    ImgNum = "image" + PN;
+                    if (Pinstatus == 1)
+                    {
+                        image = "doorOpen.png";
+                        var d = new Date();
+                        var x = document.getElementById("living-open");
+                        x.innerHTML = d;
+                    }
+                    else
+                    {
+                        image = "doorClosed.png";
+                        var d = new Date();
+                        var x = document.getElementById("living-close");
+                        x.innerHTML = d;
+                    }
+                    document.getElementById(ImgNum).src = image;
+                }
+
+				// Checks the status of window assigned to pin 3 on Arduino
+				// and updates the image to either Open or Closed and also updates the Time Stamp
+                if (PN == 3)
+                {
+                    ImgNum = "image" + PN;
+                    if (Pinstatus == 1)
+                    {
+                        image = "doorOpen.png";
+                        var d = new Date();
+                        var x = document.getElementById("window1-open");
+                        x.innerHTML = d;
+                    }
+                    else
+                    {
+                        image = "doorClosed.png";
+                        var d = new Date();
+                        var x = document.getElementById("window1-close");
+                        x.innerHTML = d;
+
+                    }
+                    document.getElementById(ImgNum).src = image;
+                }
+
+				// Checks the status of window assigned to pin 4 of Arduino
+				// and updates the image to either Open or Closedn  and also updates the Time Stamp
+                if (PN == 4)
+                {
+                    ImgNum = "image" + PN;
+                    if (Pinstatus == 1)
+                    {
+                        image = "doorOpen.png";
+						var d = new Date();
+                        var x = document.getElementById("window2-open");
+                        x.innerHTML = d;
+                    }
+                    else
+                    {
+                        image = "doorClosed.png";
+						var d = new Date();
+                        var x = document.getElementById("window2-close");
+                        x.innerHTML = d;
+                    }
+                    document.getElementById(ImgNum).src = image;
+                }
+				
+				//Reads status of motion sensor. If it is turned triggered then walkman.gif will be displayed else blank.gif
+				if (PN == 8)
+                {
+                    //ImgNum = "image" + PN;
+                    if (Pinstatus == 1)
+                    {
+                        image = "walkman.gif";
+						imageWarning = "motionDetected.png";
+                    }
+                    else
+                    {
+                        image = "walkman.png";
+						imageWarning = "blank.png";
+                    }
+                    document.getElementById("motionSensor").src = image;
+					document.getElementById("notification").src = imageWarning;
+					
+                }
+
+                if (PN.substr(0,1) == "A")
+                {
+                    PinVal = parseFloat(singleset[1]);
+                    AnalogNum = "analog" + PN.substr(1,2);
+                    document.getElementById(AnalogNum).value = PinVal;
+                }
+            }
+        }
+
+    }
+
+	//Function to minipulate the out on the Arduino. It takes in the Pin#. Action is either 1 or ON or 0 or OFF
+    function sendbutton(Pin,action)
+    {
+        document.getElementById("description").innerHTML = "Processing Button Click";
+        server = "/arduino/digital/" + Pin + "/" + action;
+        request = new XMLHttpRequest();
+        request.onreadystatechange = updateasyncbutton;
+        request.open("GET", server, true);
+        request.send(null);
+    }
+
+	//This function is used to print and and print strings onto the screen for debugging purposes.
+    function updateasyncbutton()
+    {
+        if ((request.readyState == 4) && (request.status == 200))
+        {
+            result = request.responseText;
+            document.getElementById("description").innerHTML = result;
+            singleset = result.split(",");
+            PinType = singleset[0];
+            PinNum = singleset[1];
+            Pinstatus = singleset[2];
+            ActNum = "action" + PinNum;
+            ImgNum = "image" + PinNum;
+
+            if (Pinstatus == 0)
+            {
+                PinAct = "1";
+                image = "off.jpg";
+            }
+            else
+            {
+                PinAct = "0";
+                image = "on.jpg";
+            }
+
+            document.getElementById(ActNum).value = PinAct;
+            document.getElementById(ImgNum).src = image;
+            document.getElementById("description").innerHTML = result;
+        }
+    }
+	
+	//Minipulates the anaolog output. Value can range from 0-1023 which will equate to 0V to 5V.
+    function sendDac(Pin,value)
+    {
+        ValNum = "valueDac" + Pin;
+        document.getElementById(ValNum).innerHTML=value;
+        document.getElementById("description").innerHTML = "Processing Slider";
+        server = "/arduino/dac/" + Pin + "/" + value;
+        request = new XMLHttpRequest();
+        request.onreadystatechange = updateasyncDac;
+        request.open("GET", server, true);
+        request.send(null);
+    }
+
+	//Updates the status for the DAC function
+    function updateasyncDac()
+    {
+        if ((request.readyState == 4) && (request.status == 200))
+        {
+            result = request.responseText;
+            singleset = result.split(",");
+            PinType = singleset[0];
+            PinNum = singleset[1];
+            PinVal = parseInt(singleset[2]);
+            DacNum = "dac" + PinNum;
+            ValNum = "valueDac" + PinNum;
+            document.getElementById(DacNum).value = PinVal;
+            document.getElementById(ValNum).innerHTML = PinVal;
+            document.getElementById("description").innerHTML = result;
+        }
+    }
+
+</script>
+
+
+<body>
+<div class="row">
+    <div class="col-md-6 col-md-offset-3"></div>
+    <div class="container">
+        <div class="panel panel-primary">
+            <div class="panel-heading"><b>Home Monitoring System</b>
+                <span class="glyphicon glyphicon-home" aria-hidden="true"></span>
+            </div>
+            <div class="panel-body">
+                <blockquote>
+                    <p class="text-center">
+                        <marquee scrollamount="9" width="90" style="color: darkblue;">&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;
+                        </marquee><b>Welcome To your home monitoring system</b><marquee scrollamount="9" direction="right" width="90" style="color: darkblue;">&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</marquee>
+                        <img src="walkman.png" alt="HTML5 Icon" style="width:108px;height:78px; float:right" id="motionSensor">
+						<img src="blank.png" alt="HTML5 Icon" style="width:108px;height:78px; float:right" id="notification">
+<!--                         <img src="space.gif" alt="HTML5 Icon" style="width:108px;height:78px; float:right">
+                        <img src="wheat-o.gif" alt="HTML5 Icon" style="width:108px;height:78px; float:right">
+                        <img src="field.gif" alt="HTML5 Icon" style="width:108px;height:78px; float:right"> -->
+                    </p>
+                </blockquote>
+                <!--
+                <div class="one" style="margin-left:524px;">
+                   <marquee scrollamount="9" width="90" style="color: darkslategray;"><b>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</b>
+                   </marquee><button type="button" class="btn btn-danger" style="-webkit-box-shadow: 0 8px 6px -6px black; -moz-box-shadow: 0 8px 6px -6px black;
+                        box-shadow: 0 8px 6px -6px black;"><b>Window panel status</b></button><marquee scrollamount="9" direction="right" width="90" style="color: darkslategray;"><b>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</b></marquee>
+                </div>-->
+                <br>
+                <div class="col-md-3">
+                    <div class="panel panel-danger" style="-webkit-box-shadow: 0 8px 6px -6px black; -moz-box-shadow: 0 8px 6px -6px black;
+					   box-shadow: 0 8px 6px -6px black;">
+                        <div class="panel-heading"><b>Menu</b> <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span></div>
+                        <div class="panel-body">
+                            <ul class="nav nav-pills nav-stacked">
+                                <li><a href="../index.html"><b>Home</b></a></li>
+								<li class="active"><a href="door.html"><b>Door-Status</b></a></li>
+                                <li ><a href="window.html"><b>Window-Status</b></a></li>
+                                <li ><a href="team.html"><b>Team 14</b></a></li>
+                                <!--<li><a href="Timestamp-summary.html">Timestamp summary</a></li>-->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="window">
+                    <div class="col-md-3">
+                        <div class="panel panel-danger" style="-webkit-box-shadow: 0 8px 6px -6px black; -moz-box-shadow: 0 8px 6px -6px black;
+					   box-shadow: 0 8px 6px -6px black;">
+                            <div align="center" class="panel-heading"><b>Front Door</b></div>
+                            <div class="panel-body">
+                                   <img align="center" src="doorClosed.png" width="50" id="image2" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="panel panel-danger" style="-webkit-box-shadow: 0 8px 6px -6px black; -moz-box-shadow: 0 8px 6px -6px black;
+					   box-shadow: 0 8px 6px -6px black;">
+                            <div align="center" class="panel-heading"><b>Back Door</b></div>
+                            <div class="panel-body">
+                                   <img align="center" src="doorClosed.png" width="50" id="image3" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="panel panel-danger" style="-webkit-box-shadow: 0 8px 6px -6px black; -moz-box-shadow: 0 8px 6px -6px black;
+					   box-shadow: 0 8px 6px -6px black;">
+                            <div align= "center" class="panel-heading"><b>Garage Door</b></div>
+                            <div class="panel-body">
+                                   <img align="center" src="doorClosed.png" width="50" id="image4" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!--
+                            <div class="two" style="margin-left:524px;">
+                               <marquee scrollamount="9" width="90" style="color: darkslategray;"><b>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</b>
+                               </marquee><button type="button" class="btn btn-danger" style="-webkit-box-shadow: 0 8px 6px -6px black ; -moz-box-shadow: 0 8px 6px -6px black;
+                                    box-shadow: 0 8px 6px -6px black;"><b>Door panel status</b></button><marquee scrollamount="9" direction="right" width="90" style="color: darkslategray;"><b>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</b></marquee>
+                            </div>
+                            <br><br>-->
+                <div id="clock" class="light" style="margin-right:352px;-webkit-box-shadow: 0 8px 6px -6px black; -moz-box-shadow: 0 8px 6px -6px black;
+                    box-shadow: 0 8px 6px -6px black;">
+                    <div class="display">
+                        <div class="weekdays"></div>
+                        <div class="ampm"></div>
+                        <div class="alarm"></div>
+                        <div class="digits"></div>
+                    </div>
+
+                </div>
+
+
+
+              <br><br><br><br>
+
+                        <table class="table table-bordered" style="margin-top:252px;-webkit-box-shadow: 0 8px 6px -6px black; -moz-box-shadow: 0 8px 6px -6px black;
+                    box-shadow: 0 8px 6px -6px black;">
+                            <th class="warning">Door #</th>
+                            <th class="warning">Door Open- Timestamp</th>
+                            <th class="warning">Door Closed- Timestamp</th>
+
+
+
+                            <!-- On cells (`td` or `th`) -->
+
+                            <tr>
+                                <td class="active"><b>Front Door</b></td>
+                                <td class="active" id="living-open"></td>
+                                <td class="active" id="living-close"></td>
+
+                            </tr>
+                            <tr>
+                                <td class="active"><b>Back Door</b></td>
+                                <td class="active" id="window1-open"></td>
+                                <td class="active" id="window1-close"></td>
+
+                            </tr>
+                            <tr>
+                                <td class="active"><b>Garage Door</b></td>
+                                <td class="active" id="window2-open"></td>
+                                <td class="active" id="window2-close"></td>
+
+                            </tr>
+                        </table>
+
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+</body>
+
+<script src="../js/jquery-2.1.4.min.js"></script>
+<script src="../js/bootstrap-toggle-bootstrap-toggle.min.js"></script>
+<script src="../js/moment.js"></script>
+<script src="../js/angular.min.js"></script>
+<link rel="stylesheet" type="text/css" href="../clock/clock/css/style.css">
+<script src="../clock/clock/js/script.js"></script>
+
+
+<font face="Arial">
+
+    <p id="description"> - </p>
+
+</font>
+
+</html>
